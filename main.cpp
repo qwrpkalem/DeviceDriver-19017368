@@ -10,13 +10,37 @@ public:
 	MOCK_METHOD(void, write, (long address, unsigned char data), (override));
 };
 
-//TEST(DeviceDriver, ReadFromHW) {
-//	// TODO : replace hardware with a Test Double
-//	FlashMemoryDevice* hardware = nullptr;
-//	DeviceDriver driver{ hardware };
-//	int data = driver.read(0xFF);
-//	EXPECT_EQ(0, data);
-//}
+TEST(DeviceDriver, CannotWrite) {
+	NiceMock<FlashMock> mock;
+
+	EXPECT_CALL(mock, read(_))
+		.WillOnce(Return(0x0))
+		.WillRepeatedly(Return(0x11));
+
+	DeviceDriver driver{ &mock };
+	driver.write((long)0xA, 0x11);
+
+	int data = driver.read((long)0xA);
+	EXPECT_EQ(data, 0x11);
+}
+
+TEST(DeviceDriver, WriteAndReadData) {
+	NiceMock<FlashMock> mock;
+
+	EXPECT_CALL(mock, read(_))
+		.WillRepeatedly(Return(0xFF));
+
+	DeviceDriver driver{ &mock };
+	try {
+		driver.write((long)0xB, 0xA);
+		FAIL();
+	}
+	catch (std::runtime_error& e) {
+		// assert
+		EXPECT_EQ(std::string{ e.what() }, std::string{ "Must be erased" });
+
+	}
+}
 
 TEST(DeviceDriver, FiveRead) {
 	NiceMock<FlashMock> mock;
